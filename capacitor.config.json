@@ -1,0 +1,9 @@
+{
+  "appId": "com.businessai.app",
+  "appName": "Business AI",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": false
+  }
+}

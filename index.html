@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c1712;
+    --bg-elevated:#12201a;
+    --bg-panel:#0f1b15;
+    --border:#233327;
+    --border-soft:#1a2921;
+    --gold:#c9a227;
+    --gold-light:#e3c266;
+    --emerald:#2f8a63;
+    --emerald-soft:#1c4a37;
+    --text:#f1efe4;
+    --text-muted:#8fa196;
+    --text-dim:#5e6f65;
+    --danger:#b5493c;
+    --radius-sm:6px;
+    --radius-md:10px;
+    --radius-lg:16px;
+    --shadow-gold: 0 0 0 1px rgba(201,162,39,0.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    overflow:hidden;
+  }
+  ::selection{ background:rgba(201,162,39,0.35); }
+  ::-webkit-scrollbar{ width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb{ background:#223028; border-radius:8px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+
+  /* ---------- App Shell ---------- */
+  .app{
+    display:grid;
+    grid-template-columns:260px 1fr;
+    height:100vh;
+    width:100vw;
+  }
+  @media (max-width:760px){
+    .app{ grid-template-columns:0 1fr; }
+    .sidebar{ position:fixed; z-index:40; height:100%; width:260px; transform:translateX(-100%); transition:transform .25s ease; }
+    .sidebar.open{ transform:translateX(0); box-shadow:20px 0 40px rgba(0,0,0,0.4); }
+    .scrim{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:35; }
+    .scrim.show{ display:block; }
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    background:var(--bg-panel);
+    border-right:1px solid var(--border-soft);
+    display:flex;
+    flex-direction:column;
+    padding:20px 14px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:2px 6px 22px 6px;
+  }
+  .brand svg{ flex-shrink:0; }
+  .brand-word{
+    font-family:'Fraunces',serif;
+    font-size:19px;
+    font-weight:600;
+    letter-spacing:0.2px;
+    line-height:1;
+  }
+  .brand-word em{
+    font-style:normal;
+    color:var(--gold-light);
+  }
+  .new-chat-btn{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    width:100%;
+    padding:10px 12px;
+    background:var(--emerald-soft);
+    border:1px solid #2c5a44;
+    color:var(--text);
+    border-radius:var(--radius-md);
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .15s ease, transform .1s ease;
+  }
+  .new-chat-btn:hover{ background:#245640; }
+  .new-chat-btn:active{ transform:scale(0.98); }
+
+  .history-label{
+    font-size:11px;
+    color:var(--text-dim);
+    margin:20px 8px 8px 8px;
+    font-weight:600;
+  }
+  .history-list{
+    flex:1;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .history-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:6px;
+    padding:9px 10px;
+    border-radius:var(--radius-sm);
+    cursor:pointer;
+    font-size:13px;
+    color:var(--text-muted);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .history-item:hover{ background:var(--bg-elevated); color:var(--text); }
+  .history-item.active{ background:var(--bg-elevated); color:var(--text); box-shadow:inset 2px 0 0 var(--gold); }
+  .history-item .del{
+    opacity:0;
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    cursor:pointer;
+    font-size:14px;
+    padding:2px 4px;
+  }
+  .history-item:hover .del{ opacity:1; }
+  .history-item .del:hover{ color:var(--danger); }
+
+  .sidebar-footer{
+    border-top:1px solid var(--border-soft);
+    padding-top:14px;
+    margin-top:10px;
+  }
+  .plan-chip{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 12px;
+    border-radius:var(--radius-md);
+    background:linear-gradient(135deg, rgba(201,162,39,0.12), rgba(201,162,39,0.03));
+    border:1px solid rgba(201,162,39,0.3);
+    cursor:pointer;
+  }
+  .plan-chip .txt{ font-size:12.5px; }
+  .plan-chip .txt b{ display:block; font-size:13.5px; color:var(--gold-light); font-family:'Fraunces',serif; }
+  .plan-chip .arrow{ color:var(--gold-light); font-size:15px; }
+
+  /* ---------- Main ---------- */
+  .main{
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    min-width:0;
+    position:relative;
+  }
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 22px;
+    border-bottom:1px solid var(--border-soft);
+    background:linear-gradient(180deg, rgba(18,32,26,0.6), transparent);
+  }
+  .topbar-left{ display:flex; align-items:center; gap:12px; }
+  .menu-btn{ display:none; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:8px; padding:6px 9px; cursor:pointer; font-size:15px; }
+  @media (max-width:760px){ .menu-btn{ display:inline-flex; } }
+  .chat-title{ font-size:14px; color:var(--text-muted); font-weight:500; }
+  .upgrade-btn{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background:linear-gradient(135deg, var(--gold), #a9821e);
+    color:#1a1406;
+    border:none;
+    font-weight:700;
+    font-size:13px;
+    padding:9px 16px;
+    border-radius:999px;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(201,162,39,0.25);
+  }
+  .upgrade-btn:hover{ filter:brightness(1.06); }
+
+  /* ---------- Messages ---------- */
+  .chat-area{
+    flex:1;
+    overflow-y:auto;
+    padding:26px 0 10px 0;
+  }
+  .chat-inner{
+    max-width:720px;
+    margin:0 auto;
+    padding:0 22px;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+  }
+  .empty-state{
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:60px 24px;
+    gap:14px;
+  }
+  .empty-state .mark{ opacity:0.9; }
+  .empty-state h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:26px;
+    margin:6px 0 2px 0;
+  }
+  .empty-state p{ color:var(--text-muted); font-size:14px; max-width:360px; margin:0; }
+  .suggest-row{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:18px; }
+  .suggest-chip{
+    border:1px solid var(--border);
+    background:var(--bg-panel);
+    color:var(--text-muted);
+    padding:9px 14px;
+    border-radius:999px;
+    font-size:12.5px;
+    cursor:pointer;
+  }
+  .suggest-chip:hover{ border-color:var(--gold); color:var(--gold-light); }
+
+  .msg{ display:flex; gap:12px; align-items:flex-start; }
+  .msg.user{ justify-content:flex-end; }
+  .msg .avatar{
+    width:28px; height:28px; border-radius:8px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12.5px; font-weight:700;
+  }
+  .msg.bot .avatar{ background:linear-gradient(135deg,var(--gold),#a9821e); color:#1a1406; }
+  .msg.user .bubble-wrap{ align-items:flex-end; }
+  .msg .bubble-wrap{ display:flex; flex-direction:column; gap:6px; max-width:calc(100% - 40px); }
+  .msg.user .bubble-wrap{ max-width:78%; }
+  .msg .name{ font-size:11.5px; color:var(--text-dim); font-weight:600; }
+  .bubble{
+    font-size:14.5px;
+    line-height:1.6;
+    white-space:pre-wrap;
+  }
+  /* assistant replies read as plain text, no card, like a considered answer rather than a chat bubble */
+  .msg.bot .bubble{ padding:2px 0; color:var(--text); }
+  .msg.user .bubble{
+    padding:10px 14px;
+    border-radius:16px 16px 4px 16px;
+    background:var(--emerald-soft);
+    border:1px solid #2c5a44;
+  }
+  .msg .attach-img{
+    max-width:220px;
+    border-radius:var(--radius-sm);
+    border:1px solid var(--border);
+    display:block;
+  }
+  .typing{ display:flex; gap:4px; padding:6px 2px; }
+  .typing span{ width:6px; height:6px; border-radius:50%; background:var(--text-dim); animation:blink 1.2s infinite ease-in-out; }
+  .typing span:nth-child(2){ animation-delay:.2s; }
+  .typing span:nth-child(3){ animation-delay:.4s; }
+  @keyframes blink{ 0%,80%,100%{opacity:.25;} 40%{opacity:1;} }
+
+  /* ---------- Composer ---------- */
+  .composer-wrap{
+    padding:14px 22px 20px 22px;
+    border-top:1px solid var(--border-soft);
+    background:linear-gradient(0deg, var(--bg), transparent);
+  }
+  .composer{
+    max-width:720px;
+    margin:0 auto;
+  }
+  .attach-preview{
+    display:flex;
+    gap:8px;
+    margin-bottom:8px;
+    flex-wrap:wrap;
+  }
+  .attach-chip{
+    position:relative;
+    width:54px; height:54px;
+    border-radius:8px;
+    overflow:hidden;
+    border:1px solid var(--border);
+  }
+  .attach-chip img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .attach-chip button{
+    position:absolute; top:2px; right:2px;
+    background:rgba(0,0,0,0.6); color:#fff; border:none;
+    width:16px; height:16px; border-radius:50%; font-size:10px; line-height:1; cursor:pointer;
+  }
+  .composer-box{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:22px;
+    padding:14px 14px 10px 18px;
+  }
+  .composer-box:focus-within{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,39,0.12); }
+  .composer-box textarea{
+    width:100%;
+    background:none;
+    border:none;
+    outline:none;
+    resize:none;
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    line-height:1.45;
+    max-height:160px;
+    padding:2px 0 10px 0;
+  }
+  .composer-box textarea::placeholder{ color:var(--text-dim); }
+  .composer-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding-top:2px;
+  }
+  .toolbar-left{ display:flex; align-items:center; gap:2px; }
+  .icon-btn{
+    width:34px; height:34px;
+    border-radius:50%;
+    border:1px solid transparent;
+    background:transparent;
+    color:var(--text-muted);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .icon-btn:hover{ background:var(--bg-elevated); color:var(--text); border-color:var(--border); }
+  .icon-btn.mic.listening{ background:var(--danger); color:#fff; border-color:transparent; animation:pulse 1.4s infinite; }
+  @keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(181,73,60,0.5);} 70%{box-shadow:0 0 0 9px rgba(181,73,60,0);} 100%{box-shadow:0 0 0 0 rgba(181,73,60,0);} }
+  .send-btn{
+    width:32px; height:32px;
+    border-radius:50%;
+    border:none;
+    background:var(--gold);
+    color:#1a1406;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+    transition:transform .1s ease, background .15s ease;
+  }
+  .send-btn:hover:not(:disabled){ transform:scale(1.06); }
+  .send-btn:disabled{ background:#2b3229; color:var(--text-dim); cursor:not-allowed; }
+  .disclaimer{ text-align:center; font-size:11px; color:var(--text-dim); margin-top:9px; }
+
+  /* ---------- Subscription Modal ---------- */
+  .modal-scrim{
+    position:fixed; inset:0; background:rgba(5,10,7,0.72);
+    display:none; align-items:center; justify-content:center;
+    z-index:60; padding:20px; backdrop-filter:blur(2px);
+  }
+  .modal-scrim.show{ display:flex; }
+  .modal{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    max-width:920px;
+    width:100%;
+    max-height:88vh;
+    overflow-y:auto;
+    padding:36px 32px;
+    position:relative;
+  }
+  .modal-close{
+    position:absolute; top:18px; right:18px;
+    background:none; border:none; color:var(--text-muted);
+    font-size:18px; cursor:pointer; padding:6px;
+  }
+  .modal-close:hover{ color:var(--text); }
+  .modal-head{ text-align:center; margin-bottom:8px; }
+  .modal-head .eyebrow{ color:var(--gold-light); font-size:12.5px; font-weight:600; }
+  .modal-head h2{ font-family:'Fraunces',serif; font-size:28px; font-weight:600; margin:6px 0 6px 0; }
+  .modal-head p{ color:var(--text-muted); font-size:14px; margin:0 0 26px 0; }
+
+  .billing-toggle{
+    display:flex; justify-content:center; align-items:center; gap:10px;
+    margin-bottom:28px; font-size:13px; color:var(--text-muted);
+  }
+  .switch{
+    width:42px; height:24px; background:var(--border); border-radius:20px;
+    position:relative; cursor:pointer; flex-shrink:0;
+  }
+  .switch .knob{
+    width:18px; height:18px; border-radius:50%; background:var(--text);
+    position:absolute; top:3px; left:3px; transition:left .15s ease;
+  }
+  .switch.on{ background:var(--emerald); }
+  .switch.on .knob{ left:21px; background:#fff; }
+  .save-tag{ background:rgba(201,162,39,0.15); color:var(--gold-light); font-size:11px; padding:2px 8px; border-radius:999px; font-weight:700; }
+
+  .plans-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+  }
+  @media (max-width:700px){ .plans-grid{ grid-template-columns:1fr; } }
+  .plan-card{
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:22px 20px;
+    display:flex;
+    flex-direction:column;
+    background:var(--bg-elevated);
+    position:relative;
+  }
+  .plan-card.featured{
+    border-color:var(--gold);
+    background:linear-gradient(180deg, rgba(201,162,39,0.09), var(--bg-elevated) 40%);
+  }
+  .featured-tag{
+    position:absolute; top:-11px; left:50%; transform:translateX(-50%);
+    background:var(--gold); color:#1a1406; font-size:11px; font-weight:700;
+    padding:3px 12px; border-radius:999px;
+  }
+  .plan-name{ font-family:'Fraunces',serif; font-size:18px; font-weight:600; margin-bottom:4px; }
+  .plan-price{ font-size:30px; font-weight:700; margin:8px 0 2px 0; }
+  .plan-price span{ font-size:13px; color:var(--text-muted); font-weight:500; }
+  .plan-tagline{ font-size:12.5px; color:var(--text-muted); margin-bottom:18px; }
+  .plan-feats{ list-style:none; padding:0; margin:0 0 22px 0; display:flex; flex-direction:column; gap:10px; flex:1; }
+  .plan-feats li{ font-size:13px; color:var(--text); display:flex; gap:8px; align-items:flex-start; }
+  .plan-feats li .tick{ color:var(--emerald); flex-shrink:0; margin-top:1px; }
+  .plan-btn{
+    padding:11px; border-radius:10px; border:1px solid var(--border);
+    background:transparent; color:var(--text); font-weight:600; font-size:13.5px; cursor:pointer;
+  }
+  .plan-card.featured .plan-btn{ background:var(--gold); color:#1a1406; border:none; }
+  .plan-btn:hover{ filter:brightness(1.08); }
+  .plan-btn.current{ background:var(--emerald-soft); border-color:#2c5a44; color:var(--text); cursor:default; }
+
+  input[type=file]{ display:none; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="scrim" id="scrim"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="19" fill="#12201a" stroke="#c9a227" stroke-width="1.4"/>
+        <path d="M13 24C13 24 16 17 20 17C24 17 24 24 28 24" stroke="#e3c266" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M24 17L28 17V21" stroke="#e3c266" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="20" cy="20" r="1.6" fill="#2f8a63"/>
+      </svg>
+      <div class="brand-word">Business <em>AI</em></div>
+    </div>
+
+    <button class="new-chat-btn" onclick="newChat()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      New conversation
+    </button>
+
+    <div class="history-label">Recent</div>
+    <div class="history-list" id="historyList"></div>
+
+    <div class="sidebar-footer">
+      <div class="plan-chip" onclick="openModal()">
+        <div class="txt">Current plan<b id="sidebarPlanName">Free</b></div>
+        <div class="arrow">↗</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="chat-title" id="chatTitle">New conversation</div>
+      </div>
+      <button class="upgrade-btn" onclick="openModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 8.5L21 9.5L16.2 14.2L17.5 21L12 17.5L6.5 21L7.8 14.2L3 9.5L9.5 8.5L12 2Z" fill="#1a1406"/></svg>
+        Upgrade
+      </button>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+      <div class="chat-inner" id="chatInner"></div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <div class="attach-preview" id="attachPreview"></div>
+        <div class="composer-box">
+          <textarea id="composerInput" rows="1" placeholder="Message Business AI…" onkeydown="handleKey(event)" oninput="autoGrow(this)"></textarea>
+          <div class="composer-toolbar">
+            <div class="toolbar-left">
+              <button class="icon-btn" title="Attach photo" onclick="document.getElementById('fileInput').click()">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </button>
+              <input type="file" id="fileInput" accept="image/*" onchange="handleFile(event)">
+              <button class="icon-btn mic" id="micBtn" title="Voice input" onclick="toggleVoice()">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M6 11L12 5L18 11" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="disclaimer">Business AI · connected to your own server · verify important decisions independently.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Subscription Modal -->
+<div class="modal-scrim" id="modalScrim">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-head">
+      <div class="eyebrow">PRICING</div>
+      <h2>Grow with the right plan</h2>
+      <p>Upgrade any time. Cancel any time. Prices shown in USD.</p>
+    </div>
+
+    <div class="billing-toggle">
+      <span>Monthly</span>
+      <div class="switch" id="billingSwitch" onclick="toggleBilling()"><div class="knob"></div></div>
+      <span>Yearly</span>
+      <span class="save-tag">Save 20%</span>
+    </div>
+
+    <div class="plans-grid" id="plansGrid"></div>
+  </div>
+</div>
+
+<script>
+/* ---------------- State ---------------- */
+let chats = JSON.parse(localStorage.getItem('ba_chats') || 'null') || [];
+let currentChatId = null;
+let currentPlan = localStorage.getItem('ba_plan') || 'Free';
+let attachedImage = null;
+let yearly = false;
+let recognizing = false;
+let recognition = null;
+// ⚠️ Change this to your deployed backend's URL before building the APK (see backend/README.md)
+const BACKEND_URL = "https://your-backend-url.example.com";
+
+const PLANS = [
+  {
+    key:'Free', name:'Free', tagline:'Try the basics, no card needed',
+    price:0, priceYear:0,
+    feats:['15 messages per day','Standard response speed','Photo upload','Chat history (7 days)'],
+    cta:'Current plan'
+  },
+  {
+    key:'Pro', name:'Pro', tagline:'For freelancers and small teams', featured:true,
+    price:6, priceYear:58,
+    feats:['Unlimited messages','Priority response speed','Voice input & output','Unlimited chat history','Photo & document upload'],
+    cta:'Upgrade to Pro'
+  },
+  {
+    key:'Business', name:'Business', tagline:'For growing companies', 
+    price:19, priceYear:182,
+    feats:['Everything in Pro','5 team seats included','Shared chat workspace','Priority support','Custom business knowledge'],
+    cta:'Upgrade to Business'
+  }
+];
+
+/* ---------------- Init ---------------- */
+function init(){
+  if(chats.length === 0){ chats.push(makeChat()); }
+  currentChatId = chats[0].id;
+  renderSidebar();
+  renderChat();
+  renderPlans();
+  updatePlanChip();
+  setupVoice();
+}
+
+function makeChat(){
+  return { id: 'c'+Date.now()+Math.random().toString(16).slice(2), title:'New conversation', messages:[] };
+}
+
+function getCurrentChat(){ return chats.find(c => c.id === currentChatId); }
+
+function saveChats(){ localStorage.setItem('ba_chats', JSON.stringify(chats)); }
+
+/* ---------------- Sidebar / history ---------------- */
+function renderSidebar(){
+  const list = document.getElementById('historyList');
+  list.innerHTML = '';
+  chats.forEach(c=>{
+    const item = document.createElement('div');
+    item.className = 'history-item' + (c.id === currentChatId ? ' active' : '');
+    item.onclick = () => { currentChatId = c.id; renderSidebar(); renderChat(); closeSidebarMobile(); };
+    item.innerHTML = `<span>${escapeHtml(c.title)}</span><button class="del" title="Delete" onclick="deleteChat(event,'${c.id}')">✕</button>`;
+    list.appendChild(item);
+  });
+}
+
+function deleteChat(e, id){
+  e.stopPropagation();
+  chats = chats.filter(c=>c.id!==id);
+  if(chats.length===0) chats.push(makeChat());
+  if(id===currentChatId) currentChatId = chats[0].id;
+  saveChats(); renderSidebar(); renderChat();
+}
+
+function newChat(){
+  const c = makeChat();
+  chats.unshift(c);
+  currentChatId = c.id;
+  saveChats(); renderSidebar(); renderChat(); closeSidebarMobile();
+}
+
+/* ---------------- Chat rendering ---------------- */
+function renderChat(){
+  const chat = getCurrentChat();
+  document.getElementById('chatTitle').textContent = chat.title;
+  const inner = document.getElementById('chatInner');
+  inner.innerHTML = '';
+
+  if(chat.messages.length === 0){
+    inner.innerHTML = `
+      <div class="empty-state">
+        <svg class="mark" width="46" height="46" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="19" fill="#12201a" stroke="#c9a227" stroke-width="1.4"/>
+          <path d="M13 24C13 24 16 17 20 17C24 17 24 24 28 24" stroke="#e3c266" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M24 17L28 17V21" stroke="#e3c266" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h1>What are we building today?</h1>
+        <p>Ask about pricing strategy, cash flow, a business plan, or upload a photo of a document to discuss.</p>
+        <div class="suggest-row">
+          <button class="suggest-chip" onclick="fillPrompt('Help me price a new product')">Help me price a new product</button>
+          <button class="suggest-chip" onclick="fillPrompt('Write a one-page business plan')">Write a one-page business plan</button>
+          <button class="suggest-chip" onclick="fillPrompt('How do I improve my cash flow?')">Improve my cash flow</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  chat.messages.forEach(m=>{
+    inner.appendChild(renderMessage(m));
+  });
+  scrollToBottom();
+}
+
+function renderMessage(m){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + m.role;
+  const avatar = m.role === 'user' ? 'Y' : '₿';
+  let imgHtml = m.image ? `<img class="attach-img" src="${m.image}">` : '';
+  wrap.innerHTML = `
+    <div class="avatar">${avatar}</div>
+    <div class="bubble-wrap">
+      <div class="name">${m.role==='user' ? 'You' : 'Business AI'}</div>
+      ${imgHtml}
+      ${m.text ? `<div class="bubble">${escapeHtml(m.text)}</div>` : ''}
+    </div>`;
+  return wrap;
+}
+
+function fillPrompt(text){
+  document.getElementById('composerInput').value = text;
+  autoGrow(document.getElementById('composerInput'));
+  updateSendState();
+  document.getElementById('composerInput').focus();
+}
+
+function scrollToBottom(){
+  const area = document.getElementById('chatArea');
+  requestAnimationFrame(()=> area.scrollTop = area.scrollHeight);
+}
+
+/* ---------------- Sending ---------------- */
+function autoGrow(el){
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+  updateSendState();
+}
+
+function updateSendState(){
+  const val = document.getElementById('composerInput').value.trim();
+  document.getElementById('sendBtn').disabled = !(val || attachedImage);
+}
+
+function handleKey(e){
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function handleFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    attachedImage = reader.result;
+    renderAttachPreview();
+    updateSendState();
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function renderAttachPreview(){
+  const wrap = document.getElementById('attachPreview');
+  wrap.innerHTML = '';
+  if(!attachedImage) return;
+  const chip = document.createElement('div');
+  chip.className = 'attach-chip';
+  chip.innerHTML = `<img src="${attachedImage}"><button onclick="removeAttach()">✕</button>`;
+  wrap.appendChild(chip);
+}
+
+function removeAttach(){ attachedImage = null; renderAttachPreview(); updateSendState(); }
+
+function sendMessage(){
+  const input = document.getElementById('composerInput');
+  const text = input.value.trim();
+  if(!text && !attachedImage) return;
+
+  const chat = getCurrentChat();
+  if(chat.messages.length === 0 && text){
+    chat.title = text.slice(0,32) + (text.length>32 ? '…' : '');
+  }
+  chat.messages.push({ role:'user', text, image: attachedImage });
+  input.value = '';
+  input.style.height = 'auto';
+  const hadImage = !!attachedImage;
+  attachedImage = null;
+  renderAttachPreview();
+  updateSendState();
+  saveChats(); renderSidebar(); renderChat();
+
+  // assistant turn placeholder — filled live as the real answer streams in
+  const inner = document.getElementById('chatInner');
+  const botEl = document.createElement('div');
+  botEl.className = 'msg bot';
+  botEl.innerHTML = `<div class="avatar">₿</div><div class="bubble-wrap"><div class="name">Business AI</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+  inner.appendChild(botEl);
+  scrollToBottom();
+  const bubbleEl = botEl.querySelector('.bubble');
+
+  askClaude(chat, hadImage).then(replyText=>{
+    chat.messages.push({ role:'bot', text: replyText });
+    saveChats();
+    renderChat();
+  }).catch(()=>{
+    // renderChat already called inside askClaude's error path when needed
+  });
+
+  function updateBubble(text){
+    bubbleEl.textContent = text;
+    scrollToBottom();
+  }
+
+  async function askClaude(chat, hadImg){
+    const turns = [];
+    chat.messages.forEach((m,i)=>{
+      turns.push({ role: m.role==='user' ? 'user' : 'assistant', content: m.text || (i===chat.messages.length-1 ? 'Please look at the attached photo and help me with it.' : '(sent an image)') });
+    });
+    const lastMsg = chat.messages[chat.messages.length-1];
+
+    try{
+      const res = await fetch(BACKEND_URL + '/api/chat', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ turns, image: lastMsg.image || null })
+      });
+      const data = await res.json();
+      if(!res.ok || data.error){
+        updateBubble(data.error || "Business AI's server didn't respond. Check your connection and try again.");
+        return data.error || "Business AI's server didn't respond. Check your connection and try again.";
+      }
+      updateBubble(data.text);
+      return data.text;
+    }catch(e){
+      const msg = "Couldn't reach the Business AI server. Check BACKEND_URL in the app and your internet connection.";
+      updateBubble(msg);
+      return msg;
+    }
+  }
+}
+
+function fallbackReply(text, hadImage){
+  if(hadImage && !text){
+    return "Got the photo — tell me what you'd like me to do with it: pull out numbers, summarize the document, or check it for errors.";
+  }
+  return "Business AI couldn't reach Claude from this view, so here's a placeholder: try again in a moment, or open this app directly on claude.ai to enable live answers.";
+}
+
+/* ---------------- Voice ---------------- */
+function setupVoice(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ document.getElementById('micBtn').style.display='none'; return; }
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.onresult = (e)=>{
+    const text = e.results[0][0].transcript;
+    const input = document.getElementById('composerInput');
+    input.value = (input.value ? input.value + ' ' : '') + text;
+    autoGrow(input);
+  };
+  recognition.onend = ()=>{ recognizing = false; document.getElementById('micBtn').classList.remove('listening'); };
+}
+
+function toggleVoice(){
+  if(!recognition) return;
+  if(recognizing){ recognition.stop(); recognizing=false; document.getElementById('micBtn').classList.remove('listening'); return; }
+  try{
+    recognition.start();
+    recognizing = true;
+    document.getElementById('micBtn').classList.add('listening');
+  }catch(err){}
+}
+
+/* ---------------- Subscription modal ---------------- */
+function renderPlans(){
+  const grid = document.getElementById('plansGrid');
+  grid.innerHTML = '';
+  PLANS.forEach(p=>{
+    const price = yearly ? p.priceYear : p.price;
+    const period = p.price === 0 ? '' : (yearly ? '/year' : '/month');
+    const isCurrent = p.key === currentPlan;
+    const card = document.createElement('div');
+    card.className = 'plan-card' + (p.featured ? ' featured' : '');
+    card.innerHTML = `
+      ${p.featured ? '<div class="featured-tag">Most popular</div>' : ''}
+      <div class="plan-name">${p.name}</div>
+      <div class="plan-tagline">${p.tagline}</div>
+      <div class="plan-price">$${price}<span>${period}</span></div>
+      <ul class="plan-feats">
+        ${p.feats.map(f=>`<li><span class="tick">✓</span>${f}</li>`).join('')}
+      </ul>
+      <button class="plan-btn ${isCurrent?'current':''}" onclick="selectPlan('${p.key}')" ${isCurrent?'disabled':''}>
+        ${isCurrent ? 'Current plan' : p.cta}
+      </button>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function selectPlan(key){
+  currentPlan = key;
+  localStorage.setItem('ba_plan', key);
+  updatePlanChip();
+  renderPlans();
+  closeModal();
+}
+
+function updatePlanChip(){
+  document.getElementById('sidebarPlanName').textContent = currentPlan;
+}
+
+function toggleBilling(){
+  yearly = !yearly;
+  document.getElementById('billingSwitch').classList.toggle('on', yearly);
+  renderPlans();
+}
+
+function openModal(){ document.getElementById('modalScrim').classList.add('show'); }
+function closeModal(){ document.getElementById('modalScrim').classList.remove('show'); }
+document.getElementById('modalScrim').addEventListener('click', (e)=>{
+  if(e.target.id === 'modalScrim') closeModal();
+});
+
+/* ---------------- Mobile sidebar ---------------- */
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('scrim').classList.toggle('show');
+}
+function closeSidebarMobile(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('scrim').classList.remove('show');
+}
+document.getElementById('scrim').addEventListener('click', closeSidebarMobile);
+
+/* ---------------- Utils ---------------- */
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+init();
+</script>
+</body>
+</html>
